@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Neural Cellular Automata — WebGL / ONNX</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin: 0; min-height: 100vh; background: #0d0f12; color: #e6e6e6;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: grid; grid-template-rows: auto 1fr auto; gap: 1rem; padding: 1.25rem;
+  }
+  h1 { font-size: 1.1rem; margin: 0 0 0.25rem; font-weight: 600; }
+  .sub { color: #9aa0a6; font-size: 0.85rem; }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 1.25rem; align-items: start; }
+  .stage {
+    background: #16191d; border: 1px solid #2a2f36; border-radius: 12px;
+    padding: 0.75rem; display: flex; align-items: center; justify-content: center;
+    min-height: 480px;
+  }
+  canvas {
+    image-rendering: pixelated; image-rendering: crisp-edges;
+    background: #000; border-radius: 6px; max-width: 100%; height: auto;
+  }
+  .panel {
+    background: #16191d; border: 1px solid #2a2f36; border-radius: 12px;
+    padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem;
+  }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+  button {
+    background: #2563eb; color: white; border: 0; padding: 0.55rem 0.9rem;
+    border-radius: 8px; font-size: 0.9rem; cursor: pointer;
+  }
+  button.secondary { background: #2a2f36; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  label { font-size: 0.85rem; color: #c4c7cc; }
+  select, input[type=range] { background: #0d0f12; color: #e6e6e6; border: 1px solid #2a2f36; border-radius: 6px; padding: 0.3rem; }
+  .stats { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8rem; color: #9aa0a6; line-height: 1.5; }
+  .stats b { color: #e6e6e6; }
+  .badge { font-size: 0.7rem; padding: 0.15rem 0.4rem; border-radius: 4px; background: #2a2f36; color: #c4c7cc; }
+  .badge.ok { background: #134e4a; color: #5eead4; }
+  .badge.warn { background: #7c2d12; color: #fdba74; }
+  footer { color: #6b7280; font-size: 0.75rem; text-align: center; }
+  a { color: #93c5fd; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Growing Neural Cellular Automata <span id="backendBadge" class="badge">starting…</span></h1>
+  <div class="sub">In-browser inference of a trained NCA model via ONNX Runtime Web. Click the canvas to damage cells and watch regeneration.</div>
+</header>
+
+<main>
+  <section class="stage">
+    <canvas id="cv" width="96" height="64" style="width: 576px; height: 384px;"></canvas>
+  </section>
+
+  <aside class="panel">
+    <div class="row">
+      <button id="playBtn">Pause</button>
+      <button id="resetBtn" class="secondary">Reset</button>
+      <button id="stepBtn" class="secondary">Step</button>
+    </div>
+
+    <div class="row">
+      <label for="backend">Backend</label>
+      <select id="backend">
+        <option value="webgl" selected>WebGL</option>
+        <option value="wasm">WASM (CPU)</option>
+      </select>
+    </div>
+
+    <div class="row">
+      <label for="speed">Steps / frame: <span id="speedVal">1</span></label>
+      <input id="speed" type="range" min="1" max="8" value="1">
+    </div>
+
+    <div class="row">
+      <label for="fire">Fire rate: <span id="fireVal">0.50</span></label>
+      <input id="fire" type="range" min="0" max="1" step="0.05" value="0.5">
+    </div>
+
+    <div class="stats" id="stats">
+      backend: <b>—</b><br>
+      model:   <b>—</b><br>
+      step:    <b>0</b><br>
+      fps:     <b>0</b><br>
+      alive:   <b>1</b>
+    </div>
+
+    <details>
+      <summary>About</summary>
+      <div class="sub" style="margin-top: 0.5rem;">
+        The model is a fully-convolutional re-wrap of the patch-based update network trained
+        in <code>main.ipynb</code>. Weights are copied 1:1; the 3×3 valid-padded conv becomes
+        a 3×3 same-padded conv on the full grid, and the Dense head becomes a 1×1 conv. Both
+        forms are mathematically identical. Inference runs entirely on the GPU via WebGL.
+      </div>
+    </details>
+  </aside>
+</main>
+
+<footer>
+  Powered by <a href="https://onnxruntime.ai/docs/tutorials/web/" target="_blank" rel="noopener">ONNX Runtime Web</a>.
+  See <code>export/export_to_onnx.py</code> for the conversion pipeline.
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/ort.min.js"></script>
+<script>
+  // Tell onnxruntime-web where to find its .wasm assets when we fall back to CPU.
+  ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/";
+</script>
+<script src="./nca.js"></script>
+</body>
+</html>
